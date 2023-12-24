@@ -181,11 +181,9 @@
 		compatible = "spi-gpio";
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_spi4>;
-		pinctrl-assert-gpios = <&gpio5 8 GPIO_ACTIVE_LOW>;
 		status = "disabled";
 		gpio-sck = <&gpio5 11 0>;
 		gpio-mosi = <&gpio5 10 0>;
-		cs-gpios = <&gpio5 7 0>;
 		num-chipselects = <1>;
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -248,7 +246,7 @@
 &fec1 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_enet1
-		     &pinctrl_fec1_reset>;
+		     &pinctrl_enet1_reset>;
 	phy-mode = "rmii";
 	phy-handle = <&ethphy0>;
 	phy-reset-gpios = <&gpio5 7 GPIO_ACTIVE_LOW>;
@@ -259,7 +257,7 @@
 &fec2 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_enet2
-		     &pinctrl_fec2_reset>;
+		     &pinctrl_enet2_reset>;
 	phy-mode = "rmii";
 	phy-handle = <&ethphy1>;
 	phy-reset-gpios = <&gpio5 8 GPIO_ACTIVE_LOW>;
@@ -270,13 +268,15 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 
-		ethphy0: ethernet-phy@2 {
+		ethphy0: ethernet-phy@0 {
 			compatible = "ethernet-phy-ieee802.3-c22";
+			smsc,disable-energy-detect;
 			reg = <0>;
 		};
 
 		ethphy1: ethernet-phy@1 {
 			compatible = "ethernet-phy-ieee802.3-c22";
+			smsc,disable-energy-detect;
 			reg = <1>;
 		};
 	};
@@ -790,6 +790,19 @@
 	pinctrl-names = "default_snvs";
         pinctrl-0 = <&pinctrl_hog_2>;
         imx6ul-evk {
+		pinctrl_enet1_reset: enet1resetgrp {
+			fsl,pins = <
+				MX6ULL_PAD_SNVS_TAMPER7__GPIO5_IO07 0x10B0
+			>;
+		};
+
+		pinctrl_enet2_reset: enet2resetgrp {
+			fsl,pins = <
+			/* used for enet2 reset */
+				MX6ULL_PAD_SNVS_TAMPER8__GPIO5_IO08 0x10B0
+			>;
+		};
+
 		pinctrl_hog_2: hoggrp-2 {
                         fsl,pins = <
                                 MX6ULL_PAD_SNVS_TAMPER0__GPIO5_IO00      0x80000000
@@ -801,7 +814,7 @@
                                 MX6ULL_PAD_SNVS_TAMPER3__GPIO5_IO03      0x79
                         >;
                 };
-		
+
 		pinctrl_lcdif_reset: lcdifresetgrp {
                         fsl,pins = <
                                 /* used for lcd reset */
@@ -813,8 +826,6 @@
                         fsl,pins = <
                                 MX6ULL_PAD_BOOT_MODE0__GPIO5_IO10        0x70a1
                                 MX6ULL_PAD_BOOT_MODE1__GPIO5_IO11        0x70a1
-                                MX6ULL_PAD_SNVS_TAMPER7__GPIO5_IO07      0x70a1
-                                MX6ULL_PAD_SNVS_TAMPER8__GPIO5_IO08      0x80000000
                         >;
                 };
 
@@ -994,8 +1005,11 @@
 };
 
 &usdhc2 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_usdhc2>;
+	pinctrl-names = "default", "state_100mhz", "state_200mhz";
+	pinctrl-0 = <&pinctrl_usdhc2_8bit>;
+	pinctrl-1 = <&pinctrl_usdhc2_8bit_100mhz>;
+	pinctrl-2 = <&pinctrl_usdhc2_8bit_200mhz>;
+	bus-width = <8>;
 	non-removable;
 	status = "okay";
 };
