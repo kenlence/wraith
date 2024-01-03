@@ -33,7 +33,7 @@ dts:prepare
 
 rootfs:prepare
 	mkdir -p $(OUT_DIR)/rootfs/
-	cd $(ROOTFS_DIR) && make wraith_defconfig && make && make install CONFIG_PREFIX=../$(OUT_DIR)/rootfs
+	cd $(ROOTFS_DIR) && make wraith_defconfig && make && make install CONFIG_PREFIX=$(OUT_DIR)/rootfs
 
 	mkdir -p $(OUT_DIR)/rootfs/lib
 	cp $(TOOLCHAIN_DIR)/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/arm-linux-gnueabihf/libc/lib/*so* $(OUT_DIR)/rootfs/lib/ -d
