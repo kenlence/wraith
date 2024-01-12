@@ -1,0 +1,4 @@
+/bin/kill
+/bin/kill.coreutils 100
+/bin/kill.procps 200
+/bin/kill.util-linux 80

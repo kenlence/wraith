@@ -1,0 +1,11 @@
+QT.enginio_private.VERSION = 1.8.0
+QT.enginio_private.name = Enginio
+QT.enginio_private.module =
+QT.enginio_private.libs = $$QT_MODULE_LIB_BASE
+QT.enginio_private.includes = $$QT_MODULE_INCLUDE_BASE/Enginio/1.8.0 $$QT_MODULE_INCLUDE_BASE/Enginio/1.8.0/Enginio
+QT.enginio_private.frameworks =
+QT.enginio_private.depends = core_private enginio
+QT.enginio_private.uses =
+QT.enginio_private.module_config = v2 internal_module
+QT.enginio_private.enabled_features =
+QT.enginio_private.disabled_features =

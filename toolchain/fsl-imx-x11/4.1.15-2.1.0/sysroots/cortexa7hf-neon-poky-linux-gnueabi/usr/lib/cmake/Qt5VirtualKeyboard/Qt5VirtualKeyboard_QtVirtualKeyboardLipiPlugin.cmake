@@ -1,0 +1,6 @@
+
+add_library(Qt5::QtVirtualKeyboardLipiPlugin MODULE IMPORTED)
+
+_populate_VirtualKeyboard_plugin_properties(QtVirtualKeyboardLipiPlugin RELEASE "virtualkeyboard/libqtvirtualkeyboard_lipi.so")
+
+list(APPEND Qt5VirtualKeyboard_PLUGINS Qt5::QtVirtualKeyboardLipiPlugin)
