@@ -118,9 +118,20 @@ static int binder_open(struct inode *nodp, struct file *filp)
     return 0;
 }
 
+static void binder_free_service(struct binder_service *service)
+{
+    //将服务从全局删除
+    mutex_lock(&binder_services.lock);
+    rb_erase(&service->rb_node, &binder_services.rb_root);
+    mutex_unlock(&binder_services.lock);
+
+    kfree(service);
+}
+
 static int binder_release(struct inode *nodp, struct file *filp)
 {
-    //把需要释放的proc推到工作队列, 稍后再完成
+    //TODO:优化项：异步释放。把需要释放的proc推到工作队列, 稍后再完成。
+    //目前实现的版本是同步释放的，可能会带来一些系统卡顿。
     struct binder_proc *proc = (struct binder_proc*)filp->private_data;
 
     if (!proc) {
@@ -133,7 +144,18 @@ static int binder_release(struct inode *nodp, struct file *filp)
     binder_unlock();
 
     //释放proc下面管理的资源
+    mutex_lock(&proc->lock);
     //注意此时可能会有一些线程正在等待，需要通知他们释放
+
+    // 释放所有的线程资源，但是目前还没有加入线程，先不管
+
+    // 释放todo链表里的消息，但是目前还没有加入todo消息，先不管
+    mutex_unlock(&proc->lock);
+
+    // 如果是服务，则释放服务相关的资源
+    if (proc->service) {
+        binder_free_service(proc->service);
+    }
 
     kfree(proc);
     return 0;
@@ -223,8 +245,7 @@ exit:
     return -EFAULT;
 }
 
-static int binder_add_service(struct binder_proc *proc,
-                                unsigned long arg)
+static int binder_add_service(struct binder_proc *proc, unsigned long arg)
 {
     struct binder_add_service_arg ser;
 	void __user *ubuf = (void __user *)arg;
@@ -327,9 +348,16 @@ ssize_t binder_read(struct file *filp, char __user *buffer, size_t size , loff_t
     return ret;
 }
 
-ssize_t binder_write(struct file *filp, const char __user *buffer, size_t count, loff_t *ppos)
+static ssize_t binder_write(struct file *filp, const char __user *buffer, size_t count, loff_t *ppos)
 {
     return count;
+}
+
+static void binder_services_init(void)
+{
+    binder_services.rb_root = RB_ROOT;
+    binder_services.count = 0;
+    mutex_init(&binder_services.lock);
 }
 
 static struct file_operations binder_fops = {
@@ -352,9 +380,7 @@ static int __init binder_init(void)
 {
     int ret;
 
-    binder_services.rb_root = RB_ROOT;
-    binder_services.count = 0;
-    mutex_init(&binder_services.lock);
+    binder_services_init();
 
     ret = misc_register(&binder_miscdev);
     if (ret < 0) {
@@ -368,7 +394,7 @@ module_init(binder_init);
 
 static void __exit binder_exit(void)
 {
-    LOGE("binder exit\n");
+    LOGW("binder exit\n");
     LOGE("binder can't exit corrextly, must reboot system\n");
     misc_deregister(&binder_miscdev);
 }
