@@ -161,6 +161,29 @@ static int binder_release(struct inode *nodp, struct file *filp)
     return 0;
 }
 
+static int binder_get_service(unsigned long arg)
+{
+	void __user *ubuf = (void __user *)arg;
+    struct binder_get_service_arg args;
+	struct rb_node *n;
+    struct binder_service *service;
+
+    if (copy_from_user(&args, ubuf, sizeof(args))) {
+        LOGE("Can't copy from user\n");
+        return -EFAULT;
+    }
+
+    // 这里是通过name查询服务的，获取到id，性能较低，之后使用服务时通过id查询服务，就能发挥红黑树的优势
+    for (n = rb_first(&binder_services.rb_root); n != NULL; n = rb_next(n)) {
+		service = rb_entry(n, struct binder_service, rb_node);
+        if (!strcmp(service->name, args.name)) {
+            return service->id;
+        }
+	}
+
+    return -1;
+}
+
 static int binder_alloc_service_id(void)
 {
     int id = 0;
@@ -291,13 +314,13 @@ static long binder_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
             return -EINVAL;
         }
         return binder_write_read(arg);
+#endif
     case BINDER_GET_SERVICE:
         if (size != sizeof(struct binder_get_service_arg)) {
             LOGE("Add service arg size err");
             return -EINVAL;
         }
         return binder_get_service(arg);
-#endif
 
     case BINDER_ADD_SERVICE:
         if (size != sizeof(struct binder_add_service_arg)) {

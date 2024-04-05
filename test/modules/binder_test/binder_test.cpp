@@ -29,14 +29,24 @@ public:
         ioctl(fd, BINDER_ADD_SERVICE, &arg);
     }
 
+    int getService() {
+        struct binder_get_service_arg arg;
+
+        strncpy(arg.name, SERVICE_NAME, BINDER_SERVICE_NAME_MAX_LEN);
+        return ioctl(fd, BINDER_GET_SERVICE, &arg);
+    }
+
 private:
     int fd;
 };
 
-int main()
+int main(int argc, char* argv[])
 {
     BinderTester test;
+
     test.addService();
+    int id = test.getService();
+    std::cout << "binder_tester id is " << id << std::endl;
 
     while(1)
     {
