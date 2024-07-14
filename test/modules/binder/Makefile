@@ -1,6 +1,7 @@
+BINDER_DIR := $(MODULES_DIR)/binder
 
-MODULES_DIR := $(TEST_DIR)/modules
-SUB_DIRS := binder
+SUB_DIRS := service \
+			client
 
 .PHONY: all clean
 

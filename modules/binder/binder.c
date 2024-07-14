@@ -170,27 +170,33 @@ static int binder_release(struct inode *nodp, struct file *filp)
     return 0;
 }
 
+static int do_get_service_id(const char *name)
+{
+    struct binder_service *service;
+	struct rb_node *n;
+
+    // 这里是通过name查询服务的，获取到id，性能较低，之后使用服务时通过id查询服务，就能发挥红黑树的优势
+    for (n = rb_first(&binder_services.rb_root); n != NULL; n = rb_next(n)) {
+		service = rb_entry(n, struct binder_service, rb_node);
+        if (!strcmp(service->name, name)) {
+            return service->id;
+        }
+	}
+
+    return -1;
+}
+
 static int binder_get_service_id(unsigned long arg)
 {
 	void __user *ubuf = (void __user *)arg;
     struct binder_get_service_arg args;
-	struct rb_node *n;
-    struct binder_service *service;
 
     if (copy_from_user(&args, ubuf, sizeof(args))) {
         LOGE("Can't copy from user\n");
         return -EFAULT;
     }
 
-    // 这里是通过name查询服务的，获取到id，性能较低，之后使用服务时通过id查询服务，就能发挥红黑树的优势
-    for (n = rb_first(&binder_services.rb_root); n != NULL; n = rb_next(n)) {
-		service = rb_entry(n, struct binder_service, rb_node);
-        if (!strcmp(service->name, args.name)) {
-            return service->id;
-        }
-	}
-
-    return -1;
+    return do_get_service_id(args.name);
 }
 
 static int binder_alloc_service_id(void)
@@ -207,11 +213,7 @@ static int binder_alloc_service_id(void)
         id = service->id;
 	}
 
-    if (id < BINDER_MAX_SERVICE_NUM) {
-        return id + 1;
-    } else {
-        return -1;
-    }
+    return  id < BINDER_MAX_SERVICE_NUM? (id + 1) : -1;
 }
 
 static int do_add_service(struct binder_proc *proc, struct binder_add_service_arg *service_arg)
@@ -221,10 +223,7 @@ static int do_add_service(struct binder_proc *proc, struct binder_add_service_ar
     struct rb_node *parent;
     struct binder_service *ser;
 
-    if (binder_services.count >= BINDER_MAX_SERVICE_NUM) {
-        LOGE("binder only support %d services\n", BINDER_MAX_SERVICE_NUM);
-        return -EFAULT;
-    }
+
 
     service = (struct binder_service*)kzalloc(sizeof(*service), GFP_KERNEL);
     if (!service) {
@@ -270,6 +269,7 @@ static int do_add_service(struct binder_proc *proc, struct binder_add_service_ar
     mutex_unlock(&binder_services.lock);
     proc->service = service;
 
+    LOGD("Add service %s\n", service->name);
     return 0;
 
 exit:
@@ -290,6 +290,21 @@ static int binder_add_service(struct binder_proc *proc, unsigned long arg)
     if (ser.name == NULL) {
         LOGE("service arg error\n");
         return -EINVAL;
+    }
+
+    if (binder_services.count >= BINDER_MAX_SERVICE_NUM) {
+        LOGE("binder only support %d services\n", BINDER_MAX_SERVICE_NUM);
+        return -EFAULT;
+    }
+
+    if (proc->service) {
+        LOGE("Only one service can be added\n");
+        return -EFAULT;
+    }
+
+    if (do_get_service_id(ser.name) >= 0) {
+        LOGE("Service has been added\n");
+        return -EFAULT;
     }
 
     return do_add_service(proc, &ser);
@@ -447,7 +462,7 @@ static int do_thread_read(struct binder_proc *proc,
     out->id = -1; // 读的时候不需要id
     out->buffer = in->buffer; // 缓冲区不变的，始终指向自己进程所准备的缓冲区
     out->size = transaction->buffer.size;
-    out->code = transaction->cmd;
+    out->code = transaction->code;
 
     if (in->cmd == BINDER_TRANSACTION) {
         // 服务端读请求，等会儿还要回复，要知道回复给谁，所以存一下transaction
@@ -484,14 +499,14 @@ static int binder_thread_read(struct binder_proc *proc,
 
     ret = do_thread_read(proc, thread, &in, &out);
     if (ret < 0) {
-        LOGE("Thread read failed\n");
+        LOGE("Thread read failed, ret: %d\n", ret);
         return ret;
     }
 
     // 把接收到的数据还给用户空间，这里的缓存区是复用
     if (copy_to_user(ubuf, &out, sizeof(struct binder_transaction_data))) {
         LOGE("Copy to user failed\n");
-        return ret;
+        return -EINVAL;
     }
 
     return 0;
@@ -533,6 +548,7 @@ static int do_thread_write(struct binder_proc *proc,
         }
     }
 
+    transaction->cmd = data->cmd;
     transaction->buffer.size = data->size;
     transaction->code = data->code;
     transaction->from_proc = proc;
@@ -556,7 +572,7 @@ static int do_thread_write(struct binder_proc *proc,
         // 把数据放进目标队列
         mutex_lock(&transaction->to_proc->lock);
         list_add(&transaction->list, &transaction->to_proc->todo);
-        mutex_unlock(&transaction->to_thread->lock);
+        mutex_unlock(&transaction->to_proc->lock);
         // 唤醒服务进程下所有的looper
 	    wake_up_interruptible(&transaction->to_proc->wait);
         break;
@@ -632,20 +648,29 @@ static int binder_write_read(struct binder_proc *proc,
 {
 	void __user *ubuf = (void __user *)arg;
 	struct binder_write_read bwr;
+    int ret;
 
 	if (copy_from_user(&bwr, ubuf, sizeof(bwr))) {
 		return -EFAULT;
 	}
 
 	if (bwr.write_buffer) {
-		return binder_thread_write(proc, thread, bwr.write_buffer);
+        LOGE("write pid:%d\n", current->pid);
+		ret = binder_thread_write(proc, thread, bwr.write_buffer);
+        if (ret < 0) {
+            return ret;
+        }
 	}
 
 	if (bwr.read_buffer) {
-		return binder_thread_read(proc, thread, bwr.read_buffer);
+        LOGE("read pid:%d\n", current->pid);
+		ret = binder_thread_read(proc, thread, bwr.read_buffer);
+        if (ret < 0) {
+            return ret;
+        }
 	}
 
-    return -EINVAL;
+    return 0;
 }
 
 static long binder_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)

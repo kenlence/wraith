@@ -1,22 +1,18 @@
-TARGET ?= binder_test
+TARGET ?= binder_service
 
-CURRENT_PATH := $(shell pwd)
-KERNELDIR := ../../../kernel/
-MODULEDIR := ../../../modules/binder/
-OUT_DIR := $(CURRENT_PATH)/../../../out
-
-COMPILER 		?= arm-poky-linux-gnueabi-
+COMPILER 		?= arm-linux-gnueabihf-
 CXX 			:= $(COMPILER)g++
 LD 				:= $(COMPILER)ld
-OBJCOPY 		:= $(COMPILE)objcopy
-OBJDUMP 		:= $(COMPILE)objdump
+OBJCOPY 		:= $(COMPILER)objcopy
+OBJDUMP 		:= $(COMPILER)objdump
 
 CXXFLAGS := -march=armv7ve -mfpu=neon  -mfloat-abi=hard -mcpu=cortex-a7 --sysroot=$(POKYSYSROOT) -Wall -O3 -std=c++11
 LDFLAGS  := --sysroot=$(POKYSYSROOT) --hash-style=gnu --as-needed
 
 LIBPATH			:=
 
-INCDIRS 		:= . $(MODULEDIR)
+INCDIRS 		:= . \
+					../../../../include/
 SRCDIRS			:= .
 
 INCLUDE			:= $(patsubst %, -I %, $(INCDIRS))
@@ -35,7 +31,6 @@ VPATH			:= $(SRCDIRS)
 
 $(TARGET) : $(CPPFILES)
 	$(CXX) $(CXXFLAGS) $(INCLUDE) -o $@ $^
-	cp $(TARGET) $(OUT_DIR)/test/
 
 clean:
 	rm -rf $(TARGET) $(CPPOBJS)
