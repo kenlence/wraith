@@ -1,15 +1,16 @@
 MAKEFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 CURRENT_PATH := $(dir $(MAKEFILE_PATH))
 
-SUB_DIRS := binder
+SUB_DIRS := modules
 
 .PHONY: all clean
+
 all:
-	for dir in $(SUB_DIRS); do\
-		make -C $$dir -j MODULES_DIR=$(CURRENT_PATH);\
+	@for dir in $(SUB_DIRS); do\
+		make -C $$dir -j;\
 	done
 
 clean:
-	for dir in $(SUB_DIRS); do\
+	@for dir in $(SUB_DIRS); do\
 		make -C $$dir clean;\
 	done

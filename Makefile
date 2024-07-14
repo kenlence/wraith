@@ -9,8 +9,10 @@ OUT_DIR := $(WRAITH_DIR)/out
 ROOTFS_DIR := $(WRAITH_DIR)/rootfs
 TOOLCHAIN_DIR := $(WRAITH_DIR)/toolchain
 MODULES_DIR := $(WRAITH_DIR)/modules
+SYSTEM_DIR := $(WRAITH_DIR)/system
+TEST_DIR := $(WRAITH_DIR)/test
 
-.PHONY: all clean kernel rootfs
+.PHONY: all clean kernel rootfs system
 
 all:kernel rootfs modules
 	tar -zcf system.tar.gz $(OUT_DIR)/
@@ -31,11 +33,15 @@ dts:prepare
 	cd $(KERNEL_DIR) && make dtbs
 	cp $(KERNEL_DIR)/arch/arm/boot/dts/imx6ull-wraith.dtb $(OUT_DIR)/
 
+system:prepare
+	make -C $(SYSTEM_DIR)/
+
 rootfs:prepare
 	mkdir -p $(OUT_DIR)/rootfs/
 	cd $(ROOTFS_DIR) && make wraith_defconfig && make && make install CONFIG_PREFIX=$(OUT_DIR)/rootfs
 
 	mkdir -p $(OUT_DIR)/rootfs/lib
+	mkdir -p $(OUT_DIR)/rootfs/lib/modules
 	cp $(TOOLCHAIN_DIR)/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/arm-linux-gnueabihf/libc/lib/*so* $(OUT_DIR)/rootfs/lib/ -d
 	cp $(TOOLCHAIN_DIR)/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/arm-linux-gnueabihf/libc/lib/*.a $(OUT_DIR)/rootfs/lib/ -d
 	cp $(TOOLCHAIN_DIR)/gcc-linaro-4.9.4-2017.01-x86_64_arm-linux-gnueabihf/arm-linux-gnueabihf/lib/*so* $(OUT_DIR)/rootfs/lib/ -d
@@ -54,6 +60,10 @@ rootfs:prepare
 	mkdir -p $(OUT_DIR)/rootfs/opt/
 	mkdir -p $(OUT_DIR)/rootfs/etc/
 	mkdir -p $(OUT_DIR)/rootfs/system/
+
+test:prepare
+	mkdir -p $(OUT_DIR)/test
+	make -C $(TEST_DIR)/
 
 # still can't work, I guess it works but didn't print to serial 0
 qemu:
