@@ -159,6 +159,7 @@ static int binder_release(struct inode *nodp, struct file *filp)
     mutex_lock(&proc->lock);
 
     // 释放todo链表里的消息，但是目前还没有加入todo消息，先不管
+    // 等到系统有长期运行的需求了，逐渐发现内核占用的内存越来越大了，再修改这里
     mutex_unlock(&proc->lock);
 
     // 如果是服务，则释放服务相关的资源
@@ -655,7 +656,6 @@ static int binder_write_read(struct binder_proc *proc,
 	}
 
 	if (bwr.write_buffer) {
-        LOGE("write pid:%d\n", current->pid);
 		ret = binder_thread_write(proc, thread, bwr.write_buffer);
         if (ret < 0) {
             return ret;
@@ -663,7 +663,6 @@ static int binder_write_read(struct binder_proc *proc,
 	}
 
 	if (bwr.read_buffer) {
-        LOGE("read pid:%d\n", current->pid);
 		ret = binder_thread_read(proc, thread, bwr.read_buffer);
         if (ret < 0) {
             return ret;

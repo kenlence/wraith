@@ -60,6 +60,10 @@ rootfs:prepare
 	mkdir -p $(OUT_DIR)/rootfs/opt/
 	mkdir -p $(OUT_DIR)/rootfs/etc/
 	mkdir -p $(OUT_DIR)/rootfs/system/
+	mkdir -p $(OUT_DIR)/rootfs/system/bin/
+	mkdir -p $(OUT_DIR)/rootfs/system/lib/
+	mkdir -p $(OUT_DIR)/rootfs/var/
+	mkdir -p $(OUT_DIR)/rootfs/var/log/
 
 test:prepare
 	mkdir -p $(OUT_DIR)/test

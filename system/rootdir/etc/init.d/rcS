@@ -1,10 +1,7 @@
 #!/bin/sh
 
-PATH=/sbin:/bin:/usr/sbin:/usr/bin:$PATH
-LD_LIBRARY_PATH=/lib:/usr/lib:$LD_LIBRARY_PATH
-
-export PATH
-export LD_LIBRARY_PATH
+export PATH=/system/bin:/sbin:/bin:/usr/sbin:/usr/bin:$PATH
+export LD_LIBRARY_PATH=/lib:/usr/lib:/system/lib:$LD_LIBRARY_PATH
 
 mount -a
 mkdir /dev/pts
@@ -12,3 +9,6 @@ mount -t devpts devpts /dev/pts
 
 echo /sbin/mdev > /proc/sys/kernel/hotplug
 mdev -s
+
+sysctl -w kernel.core_pattern=/var/log/%e.core.%p
+insmod /lib/modules/binder.ko
