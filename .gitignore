@@ -25,3 +25,6 @@ modules/binder/Module.symvers
 modules/binder/binder.mod.c
 rootfs/include/autoconf.h
 test/build
+*compile_commands.json
+modules/binder/.tmp_versions/binder.mod
+*.pyc
