@@ -1,0 +1,12 @@
+系统启动以及基础服务，是用户层的最底层,支撑包括驱动、框架和应用程序在内的所用应用层程序的基础设施
+
+Applications
+    |
+Frameworks
+    |
+Drivers
+    |
+System
+    |
+Kernel
+

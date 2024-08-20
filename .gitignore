@@ -28,3 +28,8 @@ test/build
 *compile_commands.json
 modules/binder/.tmp_versions/binder.mod
 *.pyc
+rootfs/.config
+rootfs/.config.old
+rootfs/include/autoconf.h
+system/core/ipc/cs/libwraith_cs.so
+rootfs/.config
